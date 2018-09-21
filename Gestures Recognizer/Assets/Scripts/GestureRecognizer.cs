@@ -19,6 +19,10 @@ public class GestureRecognizer : MonoBehaviour {
     private Image gestureDisplay;
 
     [SerializeField]
+    private Color textureColor = Color.white,
+        gestureColor = Color.black;
+
+    [SerializeField]
     private Vector2 pivot = new Vector2(0.5f, 0.5f);
 
     public void StartRecognizer(List<Vector2> nodes)
@@ -26,9 +30,11 @@ public class GestureRecognizer : MonoBehaviour {
         //Set pixels per node based on factor
         pixelsPerNode = textureBits / pixelsPerNodeFactor;
 
+        //Preprocessing
         OptimizeNodes(ref nodes);
-        DrawGestureTexture(nodes, Color.black);//Must be placed before translating
+        DrawGestureTexture(nodes, Color.black);
 
+        //--------For visualization--------------//
         //TranslateNodesToCenter(ref nodes);
         //DrawNodes(nodes, Color.green, true);
     }
@@ -102,23 +108,6 @@ public class GestureRecognizer : MonoBehaviour {
         return length;
     }
 
-    Vector2 GetNodesOrigin(List<Vector2> nodes)
-    {
-        Vector2 minVector, maxVector;
-        GetMinMaxNodes(nodes, out minVector, out maxVector);
-        
-        return minVector + (maxVector - minVector) * pivot;
-    }
-
-    //Translate node to origin based on pivot
-    void TranslateNodesToCenter(ref List<Vector2> nodes)
-    {
-        Vector2 center = GetNodesOrigin(nodes);
-
-        for (int i = 0; i < nodes.Count; i++)
-            nodes[i] -= center + Vector2.zero;//Actual Origin = (0,0)
-    }
-
     void GetMinMaxNodes(List<Vector2> nodes, out Vector2 min, out Vector2 max)
     {
         //Sort vector x value in ascending order
@@ -174,11 +163,19 @@ public class GestureRecognizer : MonoBehaviour {
 
     void DrawGestureTexture(List<Vector2> nodes, Color color)
     {
-        Texture2D gestureTexture = new Texture2D(textureBits, textureBits);
-        gestureTexture.filterMode = FilterMode.Point;
-        gestureTexture.wrapMode = TextureWrapMode.Clamp;
+        Texture2D gestureTexture;
 
-        SetTextureColor(ref gestureTexture, Color.white);
+        //Initialize texture
+        if (gestureDisplay.sprite == null)
+        {
+            gestureTexture = new Texture2D(textureBits, textureBits);
+            gestureTexture.filterMode = FilterMode.Point;
+            gestureTexture.wrapMode = TextureWrapMode.Clamp;
+            SetTextureColor(ref gestureTexture, textureColor);
+        }
+        else
+            gestureTexture = gestureDisplay.sprite.texture;
+        
 
         //Convert nodes position to [0..1] scale
         List<Vector2> nodesClone = new List<Vector2>(nodes);//To prevent the original nodes list from being changed
@@ -215,6 +212,25 @@ public class GestureRecognizer : MonoBehaviour {
         gestureDisplay.sprite = sprite;
     }
 
+    public void ClearGestureTexture()
+    {
+        Texture2D clearTexture = new Texture2D(textureBits, textureBits);
+
+        //Initialize texture
+        clearTexture.filterMode = FilterMode.Point;
+        clearTexture.wrapMode = TextureWrapMode.Clamp;
+
+        //Clear texture
+        SetTextureColor(ref clearTexture, textureColor);
+
+        //Create new sprite
+        Rect rect = new Rect(0, 0, clearTexture.width, clearTexture.height);
+        Vector2 pivot = Vector2.zero;
+        Sprite sprite = Sprite.Create(clearTexture, rect, pivot);
+
+        gestureDisplay.sprite = sprite;
+    }
+
     //Sets whole texture color
     void SetTextureColor(ref Texture2D texture, Color color)
     {
@@ -225,10 +241,32 @@ public class GestureRecognizer : MonoBehaviour {
                 texture.SetPixel(x, y, color);
             }
         }
+
+        texture.Apply();
     }
 
     void FindGesture(List<Vector2> nodes)
     {
         
+    }
+
+
+    //----------Exta functions for debugging and visualization purposes----------//
+
+    Vector2 GetNodesOrigin(List<Vector2> nodes)
+    {
+        Vector2 minVector, maxVector;
+        GetMinMaxNodes(nodes, out minVector, out maxVector);
+
+        return minVector + (maxVector - minVector) * pivot;
+    }
+
+    //Translate node to origin based on pivot
+    void TranslateNodesToCenter(ref List<Vector2> nodes)
+    {
+        Vector2 center = GetNodesOrigin(nodes);
+
+        for (int i = 0; i < nodes.Count; i++)
+            nodes[i] -= center + Vector2.zero;//Actual Origin = (0,0)
     }
 }
