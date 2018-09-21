@@ -1,6 +1,7 @@
 # gesture-recognizer
 Gesture recognizer for Unity Applications
 
-A recognizer for patterns drawn on screen based on pre-stored data.
+A recognizer for patterns drawn on screen.
+-Patterns are matched with data of gestures stored.
 
 Created 21 Sept 2018
