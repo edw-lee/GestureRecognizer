@@ -8,7 +8,12 @@ public class GestureRecognizer : MonoBehaviour {
     private GameObject nodeObj, parentNode;
 
     [SerializeField]
-    private int vectorScale = 1, numberOfNodes = 64;//in bits
+    private int textureBits = 64; /*bits of texture*/
+    
+    [SerializeField, Range(1, 8)]
+    private int pixelsPerNodeFactor = 4; /*factor of pixels per node (preferably multiples of 2)*/
+
+    private int pixelsPerNode; /*Pixel thickness of each node*/
 
     [SerializeField]
     private Image gestureDisplay;
@@ -18,89 +23,44 @@ public class GestureRecognizer : MonoBehaviour {
 
     public void StartRecognizer(List<Vector2> nodes)
     {
+        //Set pixels per node based on factor
+        pixelsPerNode = textureBits / pixelsPerNodeFactor;
+
+        OptimizeNodes(ref nodes);
+        DrawGestureTexture(nodes, Color.black);//Must be placed before translating
+
+        //TranslateNodesToCenter(ref nodes);
+        //DrawNodes(nodes, Color.green, true);
+    }
+
+    void DrawNodes(List<Vector2> nodes, Color color, bool drawCenter)
+    {
+        //Destroy all existing gameobject nodes before instantiating new ones
         foreach (Transform child in parentNode.transform)
             Destroy(child.gameObject);
 
-        OptimizeNodes(ref nodes);
-        NodesScaling(nodes);
+        Vector2 center = GetNodesOrigin(nodes);
 
-        DrawGestureTexture(nodes, Color.black);
-
-        FindGesture(nodes);
-
-        DrawNodes(nodes, Color.green);
-    }
-
-    void DrawNodes(List<Vector2> nodes, Color color)
-    {
         foreach (Vector2 node in nodes)
         {
-            GameObject newNode = Instantiate(nodeObj, node, nodeObj.transform.rotation);
+            GameObject newNode = Instantiate(nodeObj, node, nodeObj.transform.rotation, parentNode.transform);
             newNode.GetComponent<SpriteRenderer>().color = color;
-            newNode.transform.parent = parentNode.transform;
+            newNode.GetComponent<SpriteRenderer>().sortingOrder--;
         }
+
+        if (drawCenter)
+            Instantiate(nodeObj, center, nodeObj.transform.rotation, parentNode.transform);
+
     }
 
-    void NodesScaling(List<Vector2> nodes)
-    {
-        Vector2 maxVector, minVector;
-        GetMinMaxNodes(nodes, out minVector, out maxVector);
-
-        if (maxVector.x == minVector.x)
-        {
-            if (maxVector.x < 0)
-                maxVector.x = 0;
-            else
-                minVector.x = 0;
-        }
-
-        if (maxVector.y == minVector.y)
-        {
-            if (maxVector.y < 0)
-                maxVector.y = 0;
-            else
-                minVector.y = 0;
-        }
-
-        float x, y;
-        if ((maxVector.y - minVector.y) < (maxVector.x - minVector.x))//Width longer than height - horizontal rect
-        {
-            x = vectorScale;
-            y = (maxVector.y - minVector.y) * vectorScale / (maxVector.x - minVector.x);
-        }
-        else//Vertical rect
-        {
-            y = vectorScale;
-            x = (maxVector.x - minVector.x) * vectorScale / (maxVector.y - minVector.y);
-        }
-
-        Vector2 ratio = new Vector2(x, y);
-
-        //Scale vector
-        for (int i = 0; i < nodes.Count; i++)
-            nodes[i] = (nodes[i]-minVector) * ratio / (maxVector - minVector);
-    }
-
-    void GetMinMaxNodes(List<Vector2> nodes, out Vector2 min, out Vector2 max)
-    {
-        //Sort vector x value in ascending order
-        nodes.Sort(delegate (Vector2 a, Vector2 b) { return (a.x.CompareTo(b.x)); });
-        max.x = nodes[nodes.Count - 1].x;
-        min.x = nodes[0].x;
-
-        //Sort vector y value in ascending order
-        nodes.Sort(delegate (Vector2 a, Vector2 b) { return (a.y.CompareTo(b.y)); });
-        max.y = nodes[nodes.Count - 1].y;
-        min.y = nodes[0].y;
-    }
-    //Optimize nodes to a set number of nodes
+    //Optimize nodes distance to more constant interval based on pixelspernode(pixel thickness)
     void OptimizeNodes(ref List<Vector2> nodes)
     {
         List<Vector2> optimizedNodesList = new List<Vector2>();
 
         optimizedNodesList.Add(nodes[0]); //use first point as starting point
 
-        float interval = GetTotalNodesLength(nodes) / (numberOfNodes - 1); //get interval. maxNodes - 1 because interval is 1 lesser than points     
+        float interval = GetTotalNodesLength(nodes) / ((nodes.Count - 1) * pixelsPerNode); //get interval. maxNodes - 1 because interval is 1 lesser than points     
 
         float totalNodesDistance = 0.0f;
         for(int i = 1; i < nodes.Count; i++)
@@ -125,7 +85,7 @@ public class GestureRecognizer : MonoBehaviour {
         }
 
         //If rounding error occur where number of nodes is lesser by 1, add the last node
-        if (optimizedNodesList.Count == numberOfNodes - 1)
+        if (optimizedNodesList.Count == textureBits - 1)
             optimizedNodesList.Add(nodes[nodes.Count - 1]);
 
         nodes = optimizedNodesList;
@@ -142,7 +102,7 @@ public class GestureRecognizer : MonoBehaviour {
         return length;
     }
 
-    Vector2 SetNodesPivot(List<Vector2> nodes)
+    Vector2 GetNodesOrigin(List<Vector2> nodes)
     {
         Vector2 minVector, maxVector;
         GetMinMaxNodes(nodes, out minVector, out maxVector);
@@ -150,33 +110,104 @@ public class GestureRecognizer : MonoBehaviour {
         return minVector + (maxVector - minVector) * pivot;
     }
 
-    void TranslateNodesPosition(ref List<Vector2> nodes)
+    //Translate node to origin based on pivot
+    void TranslateNodesToCenter(ref List<Vector2> nodes)
     {
-        Vector2 center = SetNodesPivot(nodes);
+        Vector2 center = GetNodesOrigin(nodes);
 
         for (int i = 0; i < nodes.Count; i++)
-            nodes[i] -= center + Vector2.zero;//Origin = (0,0)
+            nodes[i] -= center + Vector2.zero;//Actual Origin = (0,0)
+    }
+
+    void GetMinMaxNodes(List<Vector2> nodes, out Vector2 min, out Vector2 max)
+    {
+        //Sort vector x value in ascending order
+        nodes.Sort(delegate (Vector2 a, Vector2 b) { return (a.x.CompareTo(b.x)); });
+        max.x = nodes[nodes.Count - 1].x;
+        min.x = nodes[0].x;
+
+        //Sort vector y value in ascending order
+        nodes.Sort(delegate (Vector2 a, Vector2 b) { return (a.y.CompareTo(b.y)); });
+        max.y = nodes[nodes.Count - 1].y;
+        min.y = nodes[0].y;
+    }
+
+    void NodesScaling(List<Vector2> nodes, int scale)
+    {
+        Vector2 maxVector, minVector;
+        GetMinMaxNodes(nodes, out minVector, out maxVector);
+
+        if (maxVector.x == minVector.x)
+        {
+            if (maxVector.x < 0)
+                maxVector.x = 0;
+            else
+                minVector.x = 0;
+        }
+
+        if (maxVector.y == minVector.y)
+        {
+            if (maxVector.y < 0)
+                maxVector.y = 0;
+            else
+                minVector.y = 0;
+        }
+
+        float x, y;
+        if ((maxVector.y - minVector.y) < (maxVector.x - minVector.x))//Width longer than height - horizontal rect
+        {
+            x = scale;
+            y = (maxVector.y - minVector.y) * scale / (maxVector.x - minVector.x);
+        }
+        else//Vertical rect
+        {
+            y = scale;
+            x = (maxVector.x - minVector.x) * scale / (maxVector.y - minVector.y);
+        }
+
+        Vector2 ratio = new Vector2(x, y);
+
+        //Scale vector
+        for (int i = 0; i < nodes.Count; i++)
+            nodes[i] = (nodes[i] - minVector) * ratio / (maxVector - minVector);
     }
 
     void DrawGestureTexture(List<Vector2> nodes, Color color)
     {
-        int textureSize = vectorScale * numberOfNodes;
-        Texture2D gestureTexture = new Texture2D(textureSize, textureSize);
+        Texture2D gestureTexture = new Texture2D(textureBits, textureBits);
         gestureTexture.filterMode = FilterMode.Point;
         gestureTexture.wrapMode = TextureWrapMode.Clamp;
 
         SetTextureColor(ref gestureTexture, Color.white);
 
-        for(int i = 0; i < nodes.Count; i++)
-        {
-            int x = Mathf.RoundToInt(nodes[i].x * numberOfNodes),
-                y = Mathf.RoundToInt(nodes[i].y * numberOfNodes);
+        //Convert nodes position to [0..1] scale
+        List<Vector2> nodesClone = new List<Vector2>(nodes);//To prevent the original nodes list from being changed
+        NodesScaling(nodesClone, 1);
 
-            gestureTexture.SetPixel(x, y, color);
+        for(int i = 0; i < nodesClone.Count; i++)
+        {
+            //Set pixels offset based on pixels covered by each node(thickness)
+            int pixelOffset = pixelsPerNode / 2;
+
+            //Set texture size. (Subtract pixel offset to prevent right and top edge pixels from being cropped off)
+            int textureSize = textureBits - pixelOffset; 
+
+            for (int y = 0; y < pixelOffset; y ++)
+            {
+                for(int x = 0; x < pixelOffset; x++)
+                {
+                    //Convert nodes position to pixel position
+                    int pixelX = Mathf.RoundToInt(nodesClone[i].x * textureSize),
+                    pixelY = Mathf.RoundToInt(nodesClone[i].y * textureSize);
+
+                    gestureTexture.SetPixel(pixelX + x, pixelY + y, color);
+                }
+            }
         }
 
         gestureTexture.Apply();
 
+        //Create new sprite
         Rect rect = new Rect(0, 0, gestureTexture.width, gestureTexture.height);
         Vector2 pivot = Vector2.zero;
         Sprite sprite = Sprite.Create(gestureTexture, rect, pivot);
@@ -184,6 +215,7 @@ public class GestureRecognizer : MonoBehaviour {
         gestureDisplay.sprite = sprite;
     }
 
+    //Sets whole texture color
     void SetTextureColor(ref Texture2D texture, Color color)
     {
         for(int x = 0; x < texture.width; x++)

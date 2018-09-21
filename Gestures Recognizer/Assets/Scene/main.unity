@@ -576,10 +576,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   nodeObj: {fileID: 1991481600231764, guid: b6541b08702b48643a5fe702336dcb0d, type: 2}
   parentNode: {fileID: 564589526}
-  vectorScale: 1
-  numberOfNodes: 256
+  textureBits: 16
+  pixelsPerNodeFactor: 4
   gestureDisplay: {fileID: 774628244}
-  pivot: {x: 0, y: 0.5}
+  pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2002234284
 GameObject:
   m_ObjectHideFlags: 0
