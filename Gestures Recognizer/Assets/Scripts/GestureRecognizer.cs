@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -7,11 +8,14 @@ public class GestureRecognizer : MonoBehaviour {
     [SerializeField]
     private GameObject nodeObj, parentNode;
 
-    [SerializeField]
-    private int textureBits = 64; /*bits of texture*/
-    
-    [SerializeField, Range(1, 8)]
-    private int pixelsPerNodeFactor = 4; /*factor of pixels per node (preferably multiples of 2)*/
+    [SerializeField, Range(0, 5)]
+    private int textureBitsLevel = 1; //Level of bits => (2^level) * 8 = texture bits
+
+    private int textureBits; /*bits of texture, max = (2^5)*8 = 256 bits*/
+    private BitArray bits; //To store texture information as binary bits
+
+    [SerializeField, Range(1, 3)]
+    private int pixelsPerNodeFactor = 2; /*factor of pixels per node (preferably multiples of 2)*/
 
     private int pixelsPerNode; /*Pixel thickness of each node*/
 
@@ -25,38 +29,24 @@ public class GestureRecognizer : MonoBehaviour {
     [SerializeField]
     private Vector2 pivot = new Vector2(0.5f, 0.5f);
 
+    private void Start()
+    {
+        //Initialize variables
+        textureBits = 8 * (int)Mathf.Pow(2, textureBitsLevel);
+        pixelsPerNode = textureBits / (int)Mathf.Pow(2, pixelsPerNodeFactor);
+        bits = new BitArray(new bool[textureBits * textureBits]);
+    }
+
     public void StartRecognizer(List<Vector2> nodes)
     {
-        //Set pixels per node based on factor
-        pixelsPerNode = textureBits / pixelsPerNodeFactor;
-
         //Preprocessing
         OptimizeNodes(ref nodes);
-        DrawGestureTexture(nodes, Color.black);
+        BinaryEncoder(nodes);
+        DrawGestureTexture();
 
         //--------For visualization--------------//
         //TranslateNodesToCenter(ref nodes);
         //DrawNodes(nodes, Color.green, true);
-    }
-
-    void DrawNodes(List<Vector2> nodes, Color color, bool drawCenter)
-    {
-        //Destroy all existing gameobject nodes before instantiating new ones
-        foreach (Transform child in parentNode.transform)
-            Destroy(child.gameObject);
-
-        Vector2 center = GetNodesOrigin(nodes);
-
-        foreach (Vector2 node in nodes)
-        {
-            GameObject newNode = Instantiate(nodeObj, node, nodeObj.transform.rotation, parentNode.transform);
-            newNode.GetComponent<SpriteRenderer>().color = color;
-            newNode.GetComponent<SpriteRenderer>().sortingOrder--;
-        }
-
-        if (drawCenter)
-            Instantiate(nodeObj, center, nodeObj.transform.rotation, parentNode.transform);
-
     }
 
     //Optimize nodes distance to more constant interval based on pixelspernode(pixel thickness)
@@ -161,7 +151,37 @@ public class GestureRecognizer : MonoBehaviour {
             nodes[i] = (nodes[i] - minVector) * ratio / (maxVector - minVector);
     }
 
-    void DrawGestureTexture(List<Vector2> nodes, Color color)
+    //To store nodes pixel information as binary
+    void BinaryEncoder(List<Vector2> nodes)
+    {
+        //Convert nodes position to [0..1] scale
+        List<Vector2> nodesClone = new List<Vector2>(nodes);//To prevent the original nodes list from being changed
+        NodesScaling(nodesClone, 1);
+
+        for (int i = 0; i < nodesClone.Count; i++)
+        {
+            //Set position offset in binaryArray based on pixels covered by each node(thickness)
+            int positionOffset = pixelsPerNode / 2;
+
+            //Set array size. (Subtract pixel offset to prevent right and top edge pixels from being cropped off) - in terms of texture
+            int arraySize = textureBits - positionOffset;
+
+            for (int y = 0; y < positionOffset; y++)
+            {
+                for (int x = 0; x < positionOffset; x++)
+                {
+                    //Convert nodes position to array position
+                    int arrayX = Mathf.RoundToInt(nodesClone[i].x * arraySize),
+                    arrayY = Mathf.RoundToInt(nodesClone[i].y * arraySize);
+
+                    int index = (arrayX + x) + ((arrayY + y) * textureBits);
+                    bits.Set(index, true);
+                }
+            }
+        }
+    }
+
+    void DrawGestureTexture()
     {
         Texture2D gestureTexture;
 
@@ -175,30 +195,16 @@ public class GestureRecognizer : MonoBehaviour {
         }
         else
             gestureTexture = gestureDisplay.sprite.texture;
-        
 
-        //Convert nodes position to [0..1] scale
-        List<Vector2> nodesClone = new List<Vector2>(nodes);//To prevent the original nodes list from being changed
-        NodesScaling(nodesClone, 1);
-
-        for(int i = 0; i < nodesClone.Count; i++)
+        //Set texture pixels color based on value in binary array
+        for(int y = 0; y < textureBits; y++)
         {
-            //Set pixels offset based on pixels covered by each node(thickness)
-            int pixelOffset = pixelsPerNode / 2;
-
-            //Set texture size. (Subtract pixel offset to prevent right and top edge pixels from being cropped off)
-            int textureSize = textureBits - pixelOffset; 
-
-            for (int y = 0; y < pixelOffset; y ++)
+            for(int x = 0; x < textureBits; x++)
             {
-                for(int x = 0; x < pixelOffset; x++)
-                {
-                    //Convert nodes position to pixel position
-                    int pixelX = Mathf.RoundToInt(nodesClone[i].x * textureSize),
-                    pixelY = Mathf.RoundToInt(nodesClone[i].y * textureSize);
+                int index = x + y * textureBits;
 
-                    gestureTexture.SetPixel(pixelX + x, pixelY + y, color);
-                }
+                Color pixelColor = bits.Get(index)? gestureColor : textureColor;
+                gestureTexture.SetPixel(x, y, pixelColor);
             }
         }
 
@@ -208,27 +214,17 @@ public class GestureRecognizer : MonoBehaviour {
         Rect rect = new Rect(0, 0, gestureTexture.width, gestureTexture.height);
         Vector2 pivot = Vector2.zero;
         Sprite sprite = Sprite.Create(gestureTexture, rect, pivot);
+        sprite.name = "GestureTexture";
 
         gestureDisplay.sprite = sprite;
     }
 
     public void ClearGestureTexture()
     {
-        Texture2D clearTexture = new Texture2D(textureBits, textureBits);
+        //Clear binary array
+        bits.SetAll(false);
 
-        //Initialize texture
-        clearTexture.filterMode = FilterMode.Point;
-        clearTexture.wrapMode = TextureWrapMode.Clamp;
-
-        //Clear texture
-        SetTextureColor(ref clearTexture, textureColor);
-
-        //Create new sprite
-        Rect rect = new Rect(0, 0, clearTexture.width, clearTexture.height);
-        Vector2 pivot = Vector2.zero;
-        Sprite sprite = Sprite.Create(clearTexture, rect, pivot);
-
-        gestureDisplay.sprite = sprite;
+        DrawGestureTexture();
     }
 
     //Sets whole texture color
@@ -244,14 +240,33 @@ public class GestureRecognizer : MonoBehaviour {
 
         texture.Apply();
     }
-
-    void FindGesture(List<Vector2> nodes)
+    
+    public BitArray GetBits()
     {
-        
+        BitArray bitsClone = new BitArray(bits);
+        return bitsClone;
     }
 
-
     //----------Exta functions for debugging and visualization purposes----------//
+    void DrawNodes(List<Vector2> nodes, Color color, bool drawCenter)
+    {
+        //Destroy all existing gameobject nodes before instantiating new ones
+        foreach (Transform child in parentNode.transform)
+            Destroy(child.gameObject);
+
+        Vector2 center = GetNodesOrigin(nodes);
+
+        foreach (Vector2 node in nodes)
+        {
+            GameObject newNode = Instantiate(nodeObj, node, nodeObj.transform.rotation, parentNode.transform);
+            newNode.GetComponent<SpriteRenderer>().color = color;
+            newNode.GetComponent<SpriteRenderer>().sortingOrder--;
+        }
+
+        if (drawCenter)
+            Instantiate(nodeObj, center, nodeObj.transform.rotation, parentNode.transform);
+
+    }
 
     Vector2 GetNodesOrigin(List<Vector2> nodes)
     {

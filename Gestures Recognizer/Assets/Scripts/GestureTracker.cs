@@ -52,6 +52,6 @@ public class GestureTracker : MonoBehaviour {
 
         //Clear gesture with right-click
         if (Input.GetMouseButtonUp(1))
-            gr.ClearGestureTexture();
+            gr.ClearGestureData();
     }
 }

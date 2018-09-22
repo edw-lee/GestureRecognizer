@@ -61,6 +61,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Scripts\Gesture.cs" />
+    <Compile Include="Assets\Scripts\GestureDataset.cs" />
+    <Compile Include="Assets\Scripts\GestureManager.cs" />
     <Compile Include="Assets\Scripts\GestureRecognizer.cs" />
     <Compile Include="Assets\Scripts\GestureTracker.cs" />
     <Compile Include="Assets\Scripts\Mouse.cs" />

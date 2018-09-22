@@ -210,6 +210,79 @@ CanvasRenderer:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 774628242}
   m_CullTransparentMesh: 0
+--- !u!1 &987319269
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 987319272}
+  - component: {fileID: 987319271}
+  - component: {fileID: 987319270}
+  - component: {fileID: 987319273}
+  m_Layer: 0
+  m_Name: Gesture Detector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &987319270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 987319269}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 706b24ad46347e3499217bfc66e96775, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  nodesMinMagnitude: 0.1
+--- !u!114 &987319271
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 987319269}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b0fc795f613055746a0634c3a13f382c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  nodeObj: {fileID: 1991481600231764, guid: b6541b08702b48643a5fe702336dcb0d, type: 2}
+  parentNode: {fileID: 564589526}
+  textureBitsLevel: 1
+  pixelsPerNodeFactor: 2
+  gestureDisplay: {fileID: 774628244}
+  textureColor: {r: 1, g: 1, b: 1, a: 1}
+  gestureColor: {r: 1, g: 0.6664483, b: 0, a: 1}
+  pivot: {x: 0.5, y: 0.5}
+--- !u!4 &987319272
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 987319269}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.5256531, y: -0.20249206, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 7
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &987319273
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 987319269}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29852a056c62a4f85b3872f4a0f615, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1143963951
 GameObject:
   m_ObjectHideFlags: 0
@@ -469,8 +542,6 @@ GameObject:
   - component: {fileID: 1945011244}
   - component: {fileID: 1945011243}
   - component: {fileID: 1945011245}
-  - component: {fileID: 1945011246}
-  - component: {fileID: 1945011242}
   m_Layer: 5
   m_Name: MouseObj
   m_TagString: Untagged
@@ -478,18 +549,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1945011242
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1945011241}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 706b24ad46347e3499217bfc66e96775, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  nodesMinMagnitude: 0.5
 --- !u!212 &1945011243
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -563,25 +622,6 @@ MonoBehaviour:
   nodeObj: {fileID: 1991481600231764, guid: b6541b08702b48643a5fe702336dcb0d, type: 2}
   trailPrefab: {fileID: 1903588989014794, guid: 303b358c6ce36be4d8701903fc1ca42a,
     type: 2}
---- !u!114 &1945011246
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 1945011241}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b0fc795f613055746a0634c3a13f382c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  nodeObj: {fileID: 1991481600231764, guid: b6541b08702b48643a5fe702336dcb0d, type: 2}
-  parentNode: {fileID: 564589526}
-  textureBits: 16
-  pixelsPerNodeFactor: 4
-  gestureDisplay: {fileID: 774628244}
-  textureColor: {r: 1, g: 1, b: 1, a: 1}
-  gestureColor: {r: 0, g: 0, b: 0, a: 1}
-  pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2002234284
 GameObject:
   m_ObjectHideFlags: 0
