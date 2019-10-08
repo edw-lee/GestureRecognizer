@@ -1,4 +1,4 @@
-# gesture-recognizer
+# Gesture Recognizer
 Gesture recognizer for Unity Applications
 
 A recognizer for patterns drawn on screen.
